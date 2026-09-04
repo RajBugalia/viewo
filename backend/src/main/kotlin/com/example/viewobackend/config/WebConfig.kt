@@ -1,0 +1,21 @@
+package com.example.viewobackend.config
+
+import org.springframework.context.annotation.Configuration
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import java.io.File
+
+@Configuration
+class WebConfig : WebMvcConfigurer {
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        // Ensure the directory exists using absolute path to match the controller
+        val uploadPath = java.nio.file.Paths.get(System.getProperty("user.dir"), "uploads").toAbsolutePath()
+        val uploadDir = uploadPath.toFile()
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs()
+        }
+
+        registry.addResourceHandler("/uploads/**")
+            .addResourceLocations("file:${uploadDir.absolutePath}/")
+    }
+}
