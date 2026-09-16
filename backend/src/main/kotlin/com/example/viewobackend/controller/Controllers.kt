@@ -90,10 +90,7 @@ class MainController(
     }
 
     @PostMapping("/media/upload")
-    fun uploadMedia(
-        @RequestParam("file") file: org.springframework.web.multipart.MultipartFile,
-        request: jakarta.servlet.http.HttpServletRequest
-    ): Map<String, String> {
+    fun uploadMedia(@RequestParam("file") file: org.springframework.web.multipart.MultipartFile): Map<String, String> {
         val uploadPath = java.nio.file.Paths.get(System.getProperty("user.dir"), "uploads").toAbsolutePath()
         val uploadDir = uploadPath.toFile()
         if (!uploadDir.exists()) uploadDir.mkdirs()
@@ -105,13 +102,8 @@ class MainController(
         
         file.transferTo(targetFile)
 
-        // Dynamically builds the base URL from the incoming request (e.g., DigitalOcean IP or Domain)
-        val baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromRequestUri(request)
-            .replacePath(null)
-            .build()
-            .toUriString()
-
-        val fileUrl = "$baseUrl/uploads/$uniqueFilename"
+        // Hardcoding emulator IP for MVP
+        val fileUrl = "http://192.168.1.17:9876/uploads/$uniqueFilename"
         return mapOf("url" to fileUrl)
     }
 
