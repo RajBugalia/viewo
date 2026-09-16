@@ -74,7 +74,8 @@ class PlayerViewModel @Inject constructor(
                                         
                                         val extension = media.url.substringAfterLast(".", "mp4")
                                         val fileName = "${media.id}.$extension"
-                                        val downloadedFile = MediaDownloader.downloadMedia(appContext, media.url, fileName)
+                                        val dynamicUrl = com.example.viewo.Constants.getDynamicUrl(media.url)
+                                        val downloadedFile = MediaDownloader.downloadMedia(appContext, dynamicUrl, fileName)
                                         
                                         if (downloadedFile != null) {
                                             cached = MediaCacheEntity(media.id, media.url, downloadedFile.absolutePath)

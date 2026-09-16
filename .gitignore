@@ -50,4 +50,10 @@ Thumbs.db
 # ==============================
 *.tmp
 *.temp
-*.swpbackend/uploads/
+*.swp
+
+# Backend uploaded media
+backend/uploads/
+
+# Local planning files
+.planning/

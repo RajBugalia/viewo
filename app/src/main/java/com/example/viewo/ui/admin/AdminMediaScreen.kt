@@ -92,7 +92,7 @@ fun AdminMediaScreen(viewModel: AdminViewModel) {
                                         verticalArrangement = Arrangement.Center
                                     ) {
                                         if (media.type == MediaType.IMAGE) {
-                                            val displayUrl = media.url.replace("10.0.2.2", "10.58.187.64").let { if (it.startsWith("http")) it else "http://10.58.187.64:8081/$it" }
+                                            val displayUrl = com.example.viewo.Constants.getDynamicUrl(media.url)
                                             coil.compose.AsyncImage(
                                                 model = displayUrl,
                                                 contentDescription = null,
@@ -241,7 +241,7 @@ fun AdminMediaScreen(viewModel: AdminViewModel) {
             title = { Text(selectedMedia!!.name) },
             text = {
                 if (selectedMedia!!.type == MediaType.IMAGE) {
-                    val displayUrl = selectedMedia!!.url.replace("10.0.2.2", "10.58.187.64").let { if (it.startsWith("http")) it else "http://10.58.187.64:8081/$it" }
+                    val displayUrl = com.example.viewo.Constants.getDynamicUrl(selectedMedia!!.url)
                     coil.compose.AsyncImage(
                         model = displayUrl,
                         contentDescription = null,

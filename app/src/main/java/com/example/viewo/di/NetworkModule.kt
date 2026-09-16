@@ -18,7 +18,7 @@ object NetworkModule {
     fun provideRetrofit(): Retrofit {
         // Use Host IP for physical device testing on the same Wi-Fi
         return Retrofit.Builder()
-            .baseUrl("http://10.58.187.64:8081/api/")
+            .baseUrl(com.example.viewo.Constants.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

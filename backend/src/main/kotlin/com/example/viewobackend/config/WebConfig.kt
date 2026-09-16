@@ -15,7 +15,9 @@ class WebConfig : WebMvcConfigurer {
             uploadDir.mkdirs()
         }
 
+        // Convert Windows backslashes to forward slashes for Spring Resource Handler
+        val normalizedPath = uploadDir.absolutePath.replace("\\", "/")
         registry.addResourceHandler("/uploads/**")
-            .addResourceLocations("file:${uploadDir.absolutePath}/")
+            .addResourceLocations("file:///$normalizedPath/")
     }
 }

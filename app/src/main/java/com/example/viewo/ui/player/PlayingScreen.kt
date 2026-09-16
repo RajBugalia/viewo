@@ -59,7 +59,7 @@ fun ImagePlayer(media: Media, defaultDuration: Int = 10, onFinished: () -> Unit)
     }
 
     AsyncImage(
-        model = media.url,
+        model = com.example.viewo.Constants.getDynamicUrl(media.url),
         contentDescription = media.name,
         contentScale = ContentScale.Crop,
         modifier = Modifier.fillMaxSize()
@@ -83,7 +83,7 @@ fun VideoPlayer(media: Media, onFinished: () -> Unit) {
     }
 
     LaunchedEffect(media.url) {
-        val mediaItem = MediaItem.fromUri(Uri.parse(media.url))
+        val mediaItem = androidx.media3.common.MediaItem.fromUri(android.net.Uri.parse(com.example.viewo.Constants.getDynamicUrl(media.url)))
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
