@@ -145,7 +145,9 @@ class PlayerViewModel @Inject constructor(
                             )
                         }
                         
-                        val response = api.submitProofOfPlay(requests)
+                        // Assuming all unsynced records in this batch belong to the same screen
+                        val screenId = unsynced.first().screenId
+                        val response = api.submitProofOfPlay(screenId, requests)
                         if (response.isSuccessful) {
                             proofOfPlayDao.deleteSyncedRecords(unsynced.map { it.id })
                         }

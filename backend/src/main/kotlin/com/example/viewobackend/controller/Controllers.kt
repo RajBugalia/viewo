@@ -103,7 +103,7 @@ class MainController(
         file.transferTo(targetFile)
 
         // Hardcoding emulator IP for MVP
-        val fileUrl = "http://192.168.1.17:9876/uploads/$uniqueFilename"
+        val fileUrl = "http://10.46.135.64:9876/uploads/$uniqueFilename"
         return mapOf("url" to fileUrl)
     }
 

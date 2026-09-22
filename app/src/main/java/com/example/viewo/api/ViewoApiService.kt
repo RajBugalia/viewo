@@ -33,8 +33,11 @@ interface ViewoApiService {
     @POST("playlists")
     suspend fun createPlaylist(@retrofit2.http.Body request: com.example.viewo.model.PlaylistRequest): Playlist
 
-    @POST("player/proof-of-play")
-    suspend fun submitProofOfPlay(@retrofit2.http.Body records: List<com.example.viewo.model.ProofOfPlayRequest>): retrofit2.Response<Void>
+    @POST("{screenId}/proof-of-play")
+    suspend fun submitProofOfPlay(
+        @retrofit2.http.Path("screenId") screenId: String,
+        @retrofit2.http.Body records: List<com.example.viewo.model.ProofOfPlayRequest>
+    ): retrofit2.Response<Void>
 
     @GET("proof-of-play")
     suspend fun getProofOfPlayRecords(): List<com.example.viewo.model.ProofOfPlayRecord>

@@ -36,19 +36,11 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun ViewoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Disabled dynamic color to strictly use brand colors for MVP
+    darkTheme: Boolean = false, // Force Light theme everywhere for premium look
+    dynamicColor: Boolean = false, // Disabled dynamic color to strictly use brand colors
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
