@@ -70,8 +70,28 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
             if (showSettingsDialog) {
                 AlertDialog(
                     onDismissRequest = { showSettingsDialog = false },
-                    title = { Text("Network Settings") },
-                    text = { Text("Do you want to open the Wi-Fi settings to connect this screen to the internet?") },
+                    title = { Text("Device & Sync Mode Settings") },
+                    text = {
+                        androidx.compose.foundation.layout.Column(
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                        ) {
+                            val activeState = state
+                            val syncModeText = if (activeState is PlayerState.Playing) {
+                                val camp = activeState.assignment.campaign
+                                if (camp?.layoutType == "SPLIT") {
+                                    "Multi-Ad Split Screen (${camp.splitRows ?: 1} Rows × ${camp.splitCols ?: 1} Cols)"
+                                } else {
+                                    "Single Screen (100% Fullscreen)"
+                                }
+                            } else {
+                                "Single Screen (Standard)"
+                            }
+
+                            Text("Device Pairing Code: $pairingCode", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Text("Active Sync Mode: $syncModeText", color = MaterialTheme.colorScheme.primary)
+                            Text("Open Wi-Fi / Network settings to configure device connection:", style = MaterialTheme.typography.bodySmall)
+                        }
+                    },
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -88,7 +108,7 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                                             val intent = Intent(Settings.ACTION_SETTINGS)
                                             context.startActivity(intent)
                                         } catch (e3: Exception) {
-                                            android.widget.Toast.makeText(context, "Could not open settings on this device", android.widget.Toast.LENGTH_SHORT).show()
+                                            // Toast removed per user requirements
                                         }
                                     }
                                 }

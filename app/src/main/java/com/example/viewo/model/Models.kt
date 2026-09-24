@@ -18,16 +18,27 @@ enum class CampaignStatus {
     DRAFT, SCHEDULED, ACTIVE, COMPLETED
 }
 
+data class ZoneAssignment(
+    val zoneIndex: Int = 0,
+    val row: Int = 0,
+    val col: Int = 0,
+    val playlist: Playlist? = null
+)
+
 data class Campaign(
     val id: String,
     val name: String,
-    val description: String,
-    val playlistId: String,
-    val startDate: String,
-    val endDate: String,
-    val orientation: String,
-    val selectedScreens: List<String>, // List of screen IDs
-    val status: CampaignStatus
+    val description: String? = null,
+    val playlistId: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val orientation: String? = null,
+    val selectedScreens: List<String> = emptyList(),
+    val status: CampaignStatus = CampaignStatus.ACTIVE,
+    val layoutType: String? = "SINGLE",
+    val splitRows: Int? = 1,
+    val splitCols: Int? = 1,
+    val zones: List<ZoneAssignment>? = null
 )
 
 enum class MediaType {
