@@ -41,15 +41,25 @@ data class Campaign(
     val zones: List<ZoneAssignment>? = null
 )
 
+enum class DeviceSyncMode {
+    AUTO,
+    SPLIT_1X2,
+    SPLIT_2X1,
+    SPLIT_2X2,
+    SINGLE
+}
+
 enum class MediaType {
     IMAGE, VIDEO
 }
 
 data class Media(
-    val id: String,
-    val name: String,
-    val type: MediaType,
-    val url: String,
+    val id: String = "",
+    @com.google.gson.annotations.SerializedName(value = "name", alternate = ["filename", "originalFilename"])
+    val name: String = "",
+    val type: MediaType = MediaType.IMAGE,
+    @com.google.gson.annotations.SerializedName(value = "url", alternate = ["publicUrl"])
+    val url: String = "",
     val thumbnailUrl: String? = null,
     val durationSeconds: Int? = null // For video
 )

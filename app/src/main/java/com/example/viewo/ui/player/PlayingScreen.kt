@@ -23,21 +23,45 @@ import kotlinx.coroutines.delay
 @Composable
 fun PlayingScreen(
     assignment: PlayerAssignment,
+    deviceSyncMode: com.example.viewo.model.DeviceSyncMode = com.example.viewo.model.DeviceSyncMode.AUTO,
     onLogProofOfPlay: (String, String, Int, String) -> Unit = { _, _, _, _ -> }
 ) {
     val campaign = assignment.campaign
+    val defaultPlaylist = assignment.playlist
 
-    // Check if campaign is configured for Multiple Screen (Split Grid)
-    if (campaign?.layoutType == "SPLIT" && !campaign.zones.isNullOrEmpty()) {
+    val isSplit = when (deviceSyncMode) {
+        com.example.viewo.model.DeviceSyncMode.SPLIT_1X2,
+        com.example.viewo.model.DeviceSyncMode.SPLIT_2X1,
+        com.example.viewo.model.DeviceSyncMode.SPLIT_2X2 -> true
+        com.example.viewo.model.DeviceSyncMode.SINGLE -> false
+        com.example.viewo.model.DeviceSyncMode.AUTO -> campaign?.layoutType == "SPLIT"
+    }
+
+    if (isSplit) {
+        val (rows, cols) = when (deviceSyncMode) {
+            com.example.viewo.model.DeviceSyncMode.SPLIT_1X2 -> 1 to 2
+            com.example.viewo.model.DeviceSyncMode.SPLIT_2X1 -> 2 to 1
+            com.example.viewo.model.DeviceSyncMode.SPLIT_2X2 -> 2 to 2
+            else -> {
+                val r = (campaign?.splitRows ?: 1).coerceAtLeast(1)
+                val c = (campaign?.splitCols ?: 2).coerceAtLeast(1)
+                r to c
+            }
+        }
+        val zones = campaign?.zones ?: emptyList()
         SplitScreenPlaying(
             campaign = campaign,
+            defaultPlaylist = defaultPlaylist,
+            rows = rows,
+            cols = cols,
+            zones = zones,
             onLogProofOfPlay = onLogProofOfPlay
         )
         return
     }
 
     // Default: Single Screen Mode
-    val mediaItems = assignment.playlist?.mediaItems ?: emptyList()
+    val mediaItems = defaultPlaylist?.mediaItems ?: emptyList()
     if (mediaItems.isEmpty()) {
         WaitingScreen()
         return
@@ -45,7 +69,7 @@ fun PlayingScreen(
 
     ZonePlayer(
         campaignId = campaign?.id ?: "",
-        playlist = assignment.playlist!!,
+        playlist = defaultPlaylist!!,
         modifier = Modifier.fillMaxSize(),
         onLogProofOfPlay = onLogProofOfPlay
     )
@@ -57,13 +81,13 @@ fun PlayingScreen(
  */
 @Composable
 fun SplitScreenPlaying(
-    campaign: Campaign,
+    campaign: Campaign?,
+    defaultPlaylist: Playlist?,
+    rows: Int,
+    cols: Int,
+    zones: List<com.example.viewo.model.ZoneAssignment>,
     onLogProofOfPlay: (String, String, Int, String) -> Unit
 ) {
-    val rows = (campaign.splitRows ?: 1).coerceAtLeast(1)
-    val cols = (campaign.splitCols ?: 1).coerceAtLeast(1)
-    val zones = campaign.zones ?: emptyList()
-
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -74,21 +98,27 @@ fun SplitScreenPlaying(
                     .weight(1f)
             ) {
                 for (c in 0 until cols) {
+                    val zIdx = r * cols + c
                     val zone = zones.firstOrNull { it.row == r && it.col == c }
-                        ?: zones.firstOrNull { it.zoneIndex == (r * cols + c) }
+                        ?: zones.firstOrNull { it.zoneIndex == zIdx }
+
+                    val activePlaylist = zone?.playlist ?: defaultPlaylist
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxSize()
                     ) {
-                        if (zone?.playlist != null && zone.playlist.mediaItems.isNotEmpty()) {
-                            ZonePlayer(
-                                campaignId = campaign.id,
-                                playlist = zone.playlist,
-                                modifier = Modifier.fillMaxSize(),
-                                onLogProofOfPlay = onLogProofOfPlay
-                            )
+                        if (activePlaylist != null && activePlaylist.mediaItems.isNotEmpty()) {
+                            key(zIdx, activePlaylist.id) {
+                                ZonePlayer(
+                                    campaignId = campaign?.id ?: "",
+                                    playlist = activePlaylist,
+                                    initialIndex = zIdx,
+                                    modifier = Modifier.fillMaxSize(),
+                                    onLogProofOfPlay = onLogProofOfPlay
+                                )
+                            }
                         } else {
                             WaitingScreen()
                         }
@@ -107,14 +137,18 @@ fun SplitScreenPlaying(
 fun ZonePlayer(
     campaignId: String,
     playlist: Playlist,
+    initialIndex: Int = 0,
     modifier: Modifier = Modifier,
     onLogProofOfPlay: (String, String, Int, String) -> Unit
 ) {
     val mediaItems = playlist.mediaItems
     if (mediaItems.isEmpty()) return
 
-    var currentIndex by remember { mutableStateOf(0) }
-    val currentMedia = mediaItems[currentIndex]
+    val startIndex = remember(playlist.id, mediaItems.size, initialIndex) {
+        if (mediaItems.isNotEmpty()) initialIndex % mediaItems.size else 0
+    }
+    var currentIndex by remember(playlist.id, startIndex) { mutableStateOf(startIndex) }
+    val currentMedia = mediaItems.getOrNull(currentIndex) ?: mediaItems[0]
     val defaultDuration = playlist.defaultDurationSeconds
 
     fun advanceNext() {

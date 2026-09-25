@@ -4,6 +4,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,7 @@ import com.example.viewo.viewmodel.PlayerViewModel
 fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
     val state by viewModel.playerState.collectAsState()
     val pairingCode by viewModel.pairingCode.collectAsState()
+    val syncMode by viewModel.deviceSyncMode.collectAsState()
     val context = LocalContext.current
     var showSettingsDialog by remember { mutableStateOf(false) }
 
@@ -47,6 +49,7 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                 is PlayerState.Downloading -> DownloadingScreen()
                 is PlayerState.Playing -> PlayingScreen(
                     assignment = currentState.assignment,
+                    deviceSyncMode = syncMode,
                     onLogProofOfPlay = viewModel::logProofOfPlay
                 )
             }
@@ -75,21 +78,27 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                         androidx.compose.foundation.layout.Column(
                             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                         ) {
-                            val activeState = state
-                            val syncModeText = if (activeState is PlayerState.Playing) {
-                                val camp = activeState.assignment.campaign
-                                if (camp?.layoutType == "SPLIT") {
-                                    "Multi-Ad Split Screen (${camp.splitRows ?: 1} Rows × ${camp.splitCols ?: 1} Cols)"
-                                } else {
-                                    "Single Screen (100% Fullscreen)"
-                                }
-                            } else {
-                                "Single Screen (Standard)"
+                            Text("Device Pairing Code: $pairingCode", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Text("Sync Mode / Split Screen:", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+
+                            val syncModes = listOf(
+                                com.example.viewo.model.DeviceSyncMode.AUTO to "Auto (Web Campaign Driven)",
+                                com.example.viewo.model.DeviceSyncMode.SPLIT_1X2 to "Split 1 × 2 (2 Columns)",
+                                com.example.viewo.model.DeviceSyncMode.SPLIT_2X1 to "Split 2 × 1 (2 Rows)",
+                                com.example.viewo.model.DeviceSyncMode.SPLIT_2X2 to "Split 2 × 2 (4 Quadrants)",
+                                com.example.viewo.model.DeviceSyncMode.SINGLE to "Single Screen (100% Fullscreen)"
+                            )
+
+                            syncModes.forEach { (mode, label) ->
+                                androidx.compose.material3.FilterChip(
+                                    selected = (syncMode == mode),
+                                    onClick = { viewModel.setDeviceSyncMode(mode) },
+                                    label = { Text(label) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
 
-                            Text("Device Pairing Code: $pairingCode", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                            Text("Active Sync Mode: $syncModeText", color = MaterialTheme.colorScheme.primary)
-                            Text("Open Wi-Fi / Network settings to configure device connection:", style = MaterialTheme.typography.bodySmall)
+                            Text("Network / System Settings:", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                         }
                     },
                     confirmButton = {

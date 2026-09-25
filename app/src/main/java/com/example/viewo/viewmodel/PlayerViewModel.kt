@@ -35,6 +35,22 @@ class PlayerViewModel @Inject constructor(
     private val _pairingCode = MutableStateFlow(generatePairingCode())
     val pairingCode: StateFlow<String> = _pairingCode
 
+    private val prefs = application.getSharedPreferences("viewo_player_prefs", android.content.Context.MODE_PRIVATE)
+
+    private val _deviceSyncMode = MutableStateFlow(
+        try {
+            com.example.viewo.model.DeviceSyncMode.valueOf(prefs.getString("sync_mode", "AUTO") ?: "AUTO")
+        } catch (e: Exception) {
+            com.example.viewo.model.DeviceSyncMode.AUTO
+        }
+    )
+    val deviceSyncMode: StateFlow<com.example.viewo.model.DeviceSyncMode> = _deviceSyncMode
+
+    fun setDeviceSyncMode(mode: com.example.viewo.model.DeviceSyncMode) {
+        _deviceSyncMode.value = mode
+        prefs.edit().putString("sync_mode", mode.name).apply()
+    }
+
     private val _playerState = MutableStateFlow<PlayerState>(PlayerState.Unpaired)
     val playerState: StateFlow<PlayerState> = _playerState
 
@@ -54,24 +70,30 @@ class PlayerViewModel @Inject constructor(
         val localItems = items.toMutableList()
         for (i in localItems.indices) {
             val media = localItems[i]
-            var cached = mediaCacheDao.getMediaCache(media.id)
-            if (cached == null || !java.io.File(cached.localFilePath).exists()) {
-                if (_playerState.value !is PlayerState.Playing) {
-                    _playerState.value = PlayerState.Downloading
+            if (media.url.isBlank()) continue
+            try {
+                var cached = mediaCacheDao.getMediaCache(media.id)
+                if (cached == null || !java.io.File(cached.localFilePath).exists()) {
+                    if (_playerState.value !is PlayerState.Playing) {
+                        _playerState.value = PlayerState.Downloading
+                    }
+                    val cleanUrl = media.url.substringBefore("?")
+                    val extension = cleanUrl.substringAfterLast(".", "mp4")
+                    val fileName = "${media.id}.$extension"
+                    val dynamicUrl = com.example.viewo.Constants.getDynamicUrl(media.url)
+                    val downloadedFile = MediaDownloader.downloadMedia(appContext, dynamicUrl, fileName)
+                    if (downloadedFile != null) {
+                        cached = MediaCacheEntity(media.id, media.url, downloadedFile.absolutePath)
+                        mediaCacheDao.insertMediaCache(cached)
+                    } else {
+                        allDownloaded = false
+                    }
                 }
-                val extension = media.url.substringAfterLast(".", "mp4")
-                val fileName = "${media.id}.$extension"
-                val dynamicUrl = com.example.viewo.Constants.getDynamicUrl(media.url)
-                val downloadedFile = MediaDownloader.downloadMedia(appContext, dynamicUrl, fileName)
-                if (downloadedFile != null) {
-                    cached = MediaCacheEntity(media.id, media.url, downloadedFile.absolutePath)
-                    mediaCacheDao.insertMediaCache(cached)
-                } else {
-                    allDownloaded = false
+                if (cached != null) {
+                    localItems[i] = media.copy(url = "file://${cached.localFilePath}")
                 }
-            }
-            if (cached != null) {
-                localItems[i] = media.copy(url = "file://${cached.localFilePath}")
+            } catch (e: Exception) {
+                allDownloaded = false
             }
         }
         return Pair(allDownloaded, localItems)
@@ -102,19 +124,17 @@ class PlayerViewModel @Inject constructor(
                                             updatedZones.add(zone)
                                         }
                                     }
-                                    if (allZonesDownloaded) {
-                                        val updatedCampaign = campaign.copy(zones = updatedZones)
-                                        val localAssignment = assignment.copy(campaign = updatedCampaign)
-                                        _playerState.value = PlayerState.Playing(localAssignment)
-                                    }
+                                    val finalZones = if (allZonesDownloaded) updatedZones else campaign.zones
+                                    val updatedCampaign = campaign.copy(zones = finalZones)
+                                    val localAssignment = assignment.copy(campaign = updatedCampaign)
+                                    _playerState.value = PlayerState.Playing(localAssignment)
                                 } else if (assignment.playlist != null && assignment.playlist.mediaItems.isNotEmpty()) {
                                     // SINGLE SCREEN MODE
                                     val (allDownloaded, localMediaItems) = cacheMediaItems(assignment.playlist.mediaItems)
-                                    if (allDownloaded) {
-                                        val localPlaylist = assignment.playlist.copy(mediaItems = localMediaItems)
-                                        val localAssignment = assignment.copy(playlist = localPlaylist)
-                                        _playerState.value = PlayerState.Playing(localAssignment)
-                                    }
+                                    val finalMedia = if (allDownloaded) localMediaItems else assignment.playlist.mediaItems
+                                    val localPlaylist = assignment.playlist.copy(mediaItems = finalMedia)
+                                    val localAssignment = assignment.copy(playlist = localPlaylist)
+                                    _playerState.value = PlayerState.Playing(localAssignment)
                                 } else {
                                     _playerState.value = PlayerState.WaitingForCampaign
                                 }
