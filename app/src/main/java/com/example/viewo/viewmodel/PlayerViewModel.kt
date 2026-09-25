@@ -32,10 +32,22 @@ class PlayerViewModel @Inject constructor(
     private val proofOfPlayDao = ViewoDatabase.getDatabase(application).proofOfPlayDao()
     private val appContext = application.applicationContext
 
-    private val _pairingCode = MutableStateFlow(generatePairingCode())
+    private val prefs = application.getSharedPreferences("viewo_player_prefs", android.content.Context.MODE_PRIVATE)
+
+    private val _pairingCode = MutableStateFlow(
+        prefs.getString("device_pairing_code", null) ?: generatePairingCode().also {
+            prefs.edit().putString("device_pairing_code", it).apply()
+        }
+    )
     val pairingCode: StateFlow<String> = _pairingCode
 
-    private val prefs = application.getSharedPreferences("viewo_player_prefs", android.content.Context.MODE_PRIVATE)
+    fun setPairingCode(code: String) {
+        val clean = code.trim().uppercase()
+        if (clean.isNotBlank()) {
+            _pairingCode.value = clean
+            prefs.edit().putString("device_pairing_code", clean).apply()
+        }
+    }
 
     private val _deviceSyncMode = MutableStateFlow(
         try {
@@ -109,11 +121,25 @@ class PlayerViewModel @Inject constructor(
                         if (assignment != null && assignment.isPaired) {
                             val campaign = assignment.campaign
                             if (campaign != null) {
-                                if (campaign.layoutType == "SPLIT" && !campaign.zones.isNullOrEmpty()) {
+                                if (campaign.layoutType == "SPLIT") {
                                     // MULTI-SCREEN SPLIT MODE: cache media for each zone
                                     var allZonesDownloaded = true
                                     val updatedZones = mutableListOf<com.example.viewo.model.ZoneAssignment>()
-                                    for (zone in campaign.zones) {
+                                    val inputZones = if (!campaign.zones.isNullOrEmpty()) {
+                                        campaign.zones
+                                    } else {
+                                        val rows = (campaign.splitRows ?: 1).coerceAtLeast(1)
+                                        val cols = (campaign.splitCols ?: 2).coerceAtLeast(1)
+                                        (0 until (rows * cols)).map { idx ->
+                                            com.example.viewo.model.ZoneAssignment(
+                                                zoneIndex = idx,
+                                                row = idx / cols,
+                                                col = idx % cols,
+                                                playlist = assignment.playlist
+                                            )
+                                        }
+                                    }
+                                    for (zone in inputZones) {
                                         val zMedia = zone.playlist?.mediaItems ?: emptyList()
                                         if (zMedia.isNotEmpty()) {
                                             val (downloaded, localZMedia) = cacheMediaItems(zMedia)
@@ -124,7 +150,7 @@ class PlayerViewModel @Inject constructor(
                                             updatedZones.add(zone)
                                         }
                                     }
-                                    val finalZones = if (allZonesDownloaded) updatedZones else campaign.zones
+                                    val finalZones = if (allZonesDownloaded) updatedZones else inputZones
                                     val updatedCampaign = campaign.copy(zones = finalZones)
                                     val localAssignment = assignment.copy(campaign = updatedCampaign)
                                     _playerState.value = PlayerState.Playing(localAssignment)

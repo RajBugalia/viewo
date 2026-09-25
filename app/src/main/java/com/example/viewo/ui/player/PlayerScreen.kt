@@ -2,12 +2,18 @@ package com.example.viewo.ui.player
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -16,6 +22,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,6 +62,38 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                 )
             }
 
+            // Top Center Pill to open Dedicated Grid Player
+            Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+                    .clickable {
+                        val intent = Intent(context, GridPlayerActivity::class.java)
+                        context.startActivity(intent)
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GridView,
+                        contentDescription = null,
+                        tint = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Open Grid Player Activity",
+                        color = androidx.compose.ui.graphics.Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                }
+            }
+
             // Wi-Fi Icon overlay on the top right
             IconButton(
                 onClick = { showSettingsDialog = true },
@@ -65,20 +105,50 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                     imageVector = Icons.Default.Wifi,
                     contentDescription = "Wi-Fi Settings",
                     modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f) // Semi-transparent so it's not too intrusive
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
             }
 
             // Settings Dialog
             if (showSettingsDialog) {
+                var codeInput by remember { mutableStateOf(pairingCode) }
                 AlertDialog(
                     onDismissRequest = { showSettingsDialog = false },
-                    title = { Text("Device & Sync Mode Settings") },
+                    title = { Text("Device & Grid Player Settings") },
                     text = {
                         androidx.compose.foundation.layout.Column(
                             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Device Pairing Code: $pairingCode", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    showSettingsDialog = false
+                                    val intent = Intent(context, GridPlayerActivity::class.java)
+                                    context.startActivity(intent)
+                                },
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Launch Grid Player Activity", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            androidx.compose.material3.OutlinedTextField(
+                                value = codeInput,
+                                onValueChange = { codeInput = it.uppercase() },
+                                label = { Text("Device Pairing Code") },
+                                trailingIcon = {
+                                    TextButton(onClick = { viewModel.setPairingCode(codeInput) }) {
+                                        Text("Save")
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
                             Text("Sync Mode / Split Screen:", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
 
                             val syncModes = listOf(
