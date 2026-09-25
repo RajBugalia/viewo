@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,11 +56,21 @@ fun PlayerScreen(viewModel: PlayerViewModel = hiltViewModel()) {
                 is PlayerState.Unpaired -> PairingScreen(pairingCode)
                 is PlayerState.WaitingForCampaign -> WaitingScreen()
                 is PlayerState.Downloading -> DownloadingScreen()
-                is PlayerState.Playing -> PlayingScreen(
-                    assignment = currentState.assignment,
-                    deviceSyncMode = syncMode,
-                    onLogProofOfPlay = viewModel::logProofOfPlay
-                )
+                is PlayerState.Playing -> {
+                    // Auto-launch GridPlayerActivity if campaign is SPLIT
+                    LaunchedEffect(currentState.assignment.campaign?.id, currentState.assignment.campaign?.layoutType) {
+                        if (currentState.assignment.campaign?.layoutType == "SPLIT") {
+                            val intent = Intent(context, GridPlayerActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    }
+
+                    PlayingScreen(
+                        assignment = currentState.assignment,
+                        deviceSyncMode = syncMode,
+                        onLogProofOfPlay = viewModel::logProofOfPlay
+                    )
+                }
             }
 
             // Top Center Pill to open Dedicated Grid Player
